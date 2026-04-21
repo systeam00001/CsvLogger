@@ -300,7 +300,7 @@ void CsvLogger::run()
 {
     while (!m_stopRequested.load(std::memory_order_acquire))
     {
-        const std::vector<std::string> row = buildRowValues();
+        const std::vector<std::string> row = buildRowValues("AUTO");
         if (!m_writer.writeRow(row))
         {
             break;
@@ -339,12 +339,12 @@ std::vector<std::string> CsvLogger::buildHeaderColumns()
     return columns;
 }
 
-std::vector<std::string> CsvLogger::buildRowValues()
+std::vector<std::string> CsvLogger::buildRowValues(const std::string& recordType)
 {
     std::vector<std::string> values;
     values.emplace_back(readProcUptime());
     values.emplace_back(makeSystemTimeString());
-    values.emplace_back("AUTO");
+    values.emplace_back(recordType);
 
     std::lock_guard<std::mutex> lock(m_itemMutex);
     values.reserve(values.size() + m_items.size());
@@ -399,6 +399,20 @@ std::string CsvLogger::makeSystemTimeString()
     std::ostringstream oss;
     oss << std::put_time(&tmValue, "%Y-%m-%d %H:%M:%S");
     return oss.str();
+}
+
+void CsvLogger::writeRow(const std::string& recordType)
+{
+    const std::vector<std::string> row = buildRowValues(recordType);
+    if (!m_writer.writeRow(row))
+    {
+        return;
+    }
+}
+
+void CsvLogger::write()
+{
+    writeRow("MANUAL");
 }
 
 } // namespace csvlog

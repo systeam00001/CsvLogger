@@ -105,12 +105,16 @@ public:
     void stop();
     bool isRunning() const;
 
+    void write();
+
 private:
     void run();
     std::vector<std::string> buildHeaderColumns();
-    std::vector<std::string> buildRowValues();
+    std::vector<std::string> buildRowValues(const std::string& recordType);
     static std::string readProcUptime();
     static std::string makeSystemTimeString();
+
+    void writeRow(const std::string& recordType);
 
 private:
     CsvLoggerConfig m_config;

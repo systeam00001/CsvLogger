@@ -35,6 +35,11 @@ int main()
         speed.setValue(i * 10);
         temperature.setValue(40 + i);
         mode.setValue((i < 2) ? "INIT" : "RUN");
+
+        if (0 == (i%2))
+        {
+            logger.write();
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(700));
     }
 
