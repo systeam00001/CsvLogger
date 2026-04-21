@@ -323,6 +323,7 @@ std::vector<std::string> CsvLogger::buildHeaderColumns()
     std::vector<std::string> columns;
     columns.emplace_back("uptime");
     columns.emplace_back("system_time");
+    columns.emplace_back("record_type");
 
     std::lock_guard<std::mutex> lock(m_itemMutex);
     columns.reserve(columns.size() + m_items.size());
@@ -343,6 +344,7 @@ std::vector<std::string> CsvLogger::buildRowValues()
     std::vector<std::string> values;
     values.emplace_back(readProcUptime());
     values.emplace_back(makeSystemTimeString());
+    values.emplace_back("AUTO");
 
     std::lock_guard<std::mutex> lock(m_itemMutex);
     values.reserve(values.size() + m_items.size());
