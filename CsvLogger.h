@@ -21,6 +21,12 @@ struct CsvLoggerConfig
     bool append{true};
 };
 
+enum class CsvItemKind
+{
+    Auto,
+    Manual
+};
+
 class ICsvItem
 {
 public:
@@ -28,6 +34,17 @@ public:
 
     virtual std::string title() const = 0;
     virtual std::string valueAsString() const = 0;
+    virtual void clear() {};
+};
+
+struct CsvItemEntry
+{
+    ICsvItem* item{nullptr};
+    CsvItemKind kind{CsvItemKind::Auto};
+
+    CsvItemEntry(ICsvItem* i, CsvItemKind k)
+        : item(i), kind(k)
+    {}
 };
 
 class CsvStringItem final : public ICsvItem
@@ -39,6 +56,7 @@ public:
 
     std::string title() const override;
     std::string valueAsString() const override;
+    void clear() override;
 
 private:
     std::string m_title;
@@ -98,7 +116,7 @@ public:
     CsvLogger& operator=(const CsvLogger&) = delete;
 
     bool setConfig(const CsvLoggerConfig& config);
-    bool addItem(ICsvItem* item);
+    bool addItem(ICsvItem* item, CsvItemKind kind);
     bool clearItems();
 
     bool start();
@@ -106,6 +124,10 @@ public:
     bool isRunning() const;
 
     void write();
+
+    void pause();
+    void resume();
+    bool isPaused() const;
 
 private:
     void run();
@@ -115,15 +137,17 @@ private:
     static std::string makeSystemTimeString();
 
     bool writeRow(const std::string& recordType);
+    void clearManualItems();
 
 private:
     CsvLoggerConfig m_config;
-    std::vector<ICsvItem*> m_items;
+    std::vector<CsvItemEntry> m_items;
     CsvFileWriter m_writer;
 
     std::thread m_thread;
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_stopRequested{false};
+    std::atomic<bool> m_autoWritePaused{false};
 
     mutable std::mutex m_itemMutex;
     std::mutex m_waitMutex;

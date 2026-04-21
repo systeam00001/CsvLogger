@@ -20,15 +20,20 @@ int main()
     mode.setValue("INIT");
 
     CsvLogger logger(config);
-    logger.addItem(&speed);
-    logger.addItem(&temperature);
-    logger.addItem(&mode);
+    logger.addItem(&speed, CsvItemKind::Auto);
+    logger.addItem(&temperature, CsvItemKind::Auto);
+    logger.addItem(&mode, CsvItemKind::Auto);
+
+    CsvStringItem operatorNote("operator_note");
+    logger.addItem(&operatorNote, CsvItemKind::Manual);
 
     if (!logger.start())
     {
         std::cerr << "failed to start logger\n";
         return 1;
     }
+
+    //logger.pause();
 
     for (int i = 0; i < 5; ++i)
     {
@@ -38,6 +43,7 @@ int main()
 
         if (0 == (i%2))
         {
+            operatorNote.setValue("xxxx");
             logger.write();
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(700));

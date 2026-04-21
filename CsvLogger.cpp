@@ -32,6 +32,12 @@ std::string CsvStringItem::valueAsString() const
     return m_value;
 }
 
+void CsvStringItem::clear()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_value.clear();
+}
+
 CsvAtomicIntItem::CsvAtomicIntItem(std::string title, int initialValue)
     : m_title(std::move(title))
     , m_value(initialValue)
@@ -219,7 +225,7 @@ bool CsvLogger::setConfig(const CsvLoggerConfig& config)
     return true;
 }
 
-bool CsvLogger::addItem(ICsvItem* item)
+bool CsvLogger::addItem(ICsvItem* item, CsvItemKind kind)
 {
     if (item == nullptr || isRunning())
     {
@@ -227,7 +233,8 @@ bool CsvLogger::addItem(ICsvItem* item)
     }
 
     std::lock_guard<std::mutex> lock(m_itemMutex);
-    m_items.push_back(item);
+    m_items.emplace_back(CsvItemEntry{item, kind});
+
     return true;
 }
 
@@ -300,12 +307,15 @@ void CsvLogger::run()
 {
     while (!m_stopRequested.load(std::memory_order_acquire))
     {
-        const bool ret = writeRow("AUTO");
-        if (!ret)
+        if (!isPaused())
         {
-            break;
+            const bool ret = writeRow("AUTO");
+            if (!ret)
+            {
+                // TODO: error handling policy later
+            }
         }
-
+        
         std::unique_lock<std::mutex> lock(m_waitMutex);
         m_waitCv.wait_for(lock,
                           std::chrono::seconds(m_config.intervalSec),
@@ -328,11 +338,11 @@ std::vector<std::string> CsvLogger::buildHeaderColumns()
     std::lock_guard<std::mutex> lock(m_itemMutex);
     columns.reserve(columns.size() + m_items.size());
 
-    for (const ICsvItem* item : m_items)
+    for (const auto &entry : m_items)
     {
-        if (item != nullptr)
+        if (entry.item != nullptr)
         {
-            columns.push_back(item->title());
+            columns.push_back(entry.item->title());
         }
     }
 
@@ -349,11 +359,25 @@ std::vector<std::string> CsvLogger::buildRowValues(const std::string& recordType
     std::lock_guard<std::mutex> lock(m_itemMutex);
     values.reserve(values.size() + m_items.size());
 
-    for (const ICsvItem* item : m_items)
+    for (const auto& entry : m_items)
     {
-        if (item != nullptr)
+        if (nullptr != entry.item)
         {
-            values.push_back(item->valueAsString());
+            if (entry.kind == CsvItemKind::Auto)
+            {
+                values.push_back(entry.item->valueAsString());
+            }
+            else
+            {
+                if (entry.kind == CsvItemKind::Manual)
+                {
+                    values.push_back(entry.item->valueAsString());
+                }
+                else
+                {
+                    values.emplace_back("");
+                }
+            }
         }
         else
         {
@@ -404,12 +428,49 @@ std::string CsvLogger::makeSystemTimeString()
 bool CsvLogger::writeRow(const std::string& recordType)
 {
     const std::vector<std::string> row = buildRowValues(recordType);
-    return m_writer.writeRow(row);
+    bool ret = m_writer.writeRow(row);
+
+    if ("MANUAL" == recordType)
+    {
+        clearManualItems();
+    }
+
+    return ret;
 }
 
 void CsvLogger::write()
 {
     writeRow("MANUAL");
+}
+
+void CsvLogger::pause()
+{
+    m_autoWritePaused.store(true, std::memory_order_release);
+}
+
+void CsvLogger::resume()
+{
+    m_autoWritePaused.store(false, std::memory_order_release);
+}
+
+bool CsvLogger::isPaused() const
+{
+    return m_autoWritePaused.load(std::memory_order_acquire);
+}
+
+void CsvLogger::clearManualItems()
+{
+    std::lock_guard<std::mutex> lock(m_itemMutex);
+
+    for (const auto& entry : m_items)
+    {        
+        if (entry.kind != CsvItemKind::Manual || entry.item == nullptr)
+        {
+            continue;
+        }
+
+        entry.item->clear();  
+    }
 }
 
 } // namespace csvlog
