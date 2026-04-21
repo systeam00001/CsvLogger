@@ -427,6 +427,8 @@ std::string CsvLogger::makeSystemTimeString()
 bool CsvLogger::writeRow(const std::string& recordType)
 {
     const std::vector<std::string> row = buildRowValues(recordType);
+
+    std::lock_guard<std::mutex> lock(m_writeMutex);
     const bool ret = m_writer.writeRow(row);
 
     if (ret && recordType == "MANUAL")

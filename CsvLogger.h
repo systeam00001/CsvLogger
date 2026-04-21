@@ -143,6 +143,7 @@ private:
     CsvLoggerConfig m_config;
     std::vector<CsvItemEntry> m_items;
     CsvFileWriter m_writer;
+    std::mutex m_writeMutex;
 
     std::thread m_thread;
     std::atomic<bool> m_running{false};
