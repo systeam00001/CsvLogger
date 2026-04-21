@@ -300,8 +300,8 @@ void CsvLogger::run()
 {
     while (!m_stopRequested.load(std::memory_order_acquire))
     {
-        const std::vector<std::string> row = buildRowValues("AUTO");
-        if (!m_writer.writeRow(row))
+        const bool ret = writeRow("AUTO");
+        if (!ret)
         {
             break;
         }
@@ -401,13 +401,10 @@ std::string CsvLogger::makeSystemTimeString()
     return oss.str();
 }
 
-void CsvLogger::writeRow(const std::string& recordType)
+bool CsvLogger::writeRow(const std::string& recordType)
 {
     const std::vector<std::string> row = buildRowValues(recordType);
-    if (!m_writer.writeRow(row))
-    {
-        return;
-    }
+    return m_writer.writeRow(row);
 }
 
 void CsvLogger::write()

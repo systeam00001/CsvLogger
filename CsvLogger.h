@@ -114,7 +114,7 @@ private:
     static std::string readProcUptime();
     static std::string makeSystemTimeString();
 
-    void writeRow(const std::string& recordType);
+    bool writeRow(const std::string& recordType);
 
 private:
     CsvLoggerConfig m_config;
