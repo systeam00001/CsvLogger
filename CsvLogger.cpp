@@ -361,27 +361,26 @@ std::vector<std::string> CsvLogger::buildRowValues(const std::string& recordType
 
     for (const auto& entry : m_items)
     {
-        if (nullptr != entry.item)
+        if (nullptr == entry.item)
         {
-            if (entry.kind == CsvItemKind::Auto)
+            values.emplace_back("");
+            continue;
+        }
+
+        if (entry.kind == CsvItemKind::Auto)
+        {
+            values.push_back(entry.item->valueAsString());
+        }
+        else
+        {
+            if (recordType == "MANUAL")
             {
                 values.push_back(entry.item->valueAsString());
             }
             else
             {
-                if (entry.kind == CsvItemKind::Manual)
-                {
-                    values.push_back(entry.item->valueAsString());
-                }
-                else
-                {
-                    values.emplace_back("");
-                }
+                values.emplace_back("");
             }
-        }
-        else
-        {
-            values.emplace_back("");
         }
     }
 
