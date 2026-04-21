@@ -439,9 +439,9 @@ bool CsvLogger::writeRow(const std::string& recordType)
     return ret;
 }
 
-void CsvLogger::write()
+bool CsvLogger::write()
 {
-    writeRow("MANUAL");
+    return writeRow("MANUAL");
 }
 
 void CsvLogger::pause()
@@ -463,7 +463,7 @@ void CsvLogger::clearManualItems()
 {
     std::lock_guard<std::mutex> lock(m_itemMutex);
 
-    for (const auto& entry : m_items)
+    for (auto& entry : m_items)
     {        
         if (entry.kind != CsvItemKind::Manual || entry.item == nullptr)
         {

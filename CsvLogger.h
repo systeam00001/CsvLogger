@@ -34,7 +34,7 @@ public:
 
     virtual std::string title() const = 0;
     virtual std::string valueAsString() const = 0;
-    virtual void clear() {};
+    virtual void clear() {}
 };
 
 struct CsvItemEntry
@@ -123,7 +123,7 @@ public:
     void stop();
     bool isRunning() const;
 
-    void write();
+    bool write();
 
     void pause();
     void resume();
